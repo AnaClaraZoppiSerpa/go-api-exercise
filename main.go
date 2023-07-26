@@ -2,12 +2,28 @@ package main
 
 import (
 	//"encoding/json"
-	"fmt"
+
 	"io/ioutil"
 	"net/http"
 
 	"gopkg.in/yaml.v3"
 )
+
+type StringFilter struct {
+	Fragment string `yaml:"fragment"`
+	Matcher  string `yaml:"matcher"` // contains, equals, startswith, nequals, ncontains
+}
+
+type MaintainerFilter struct {
+	NameFilter  StringFilter `yaml:"name_filter"`
+	EmailFilter StringFilter `yaml:"email_filter"`
+}
+
+type VersionFilter struct {
+	Lower        int    `yaml:"lower"`
+	Upper        int    `yaml:"upper"`
+	RegexPattern string `yaml:"regex_pattern"`
+}
 
 type MaintainerInfo struct {
 	Name  string `yaml:"name"`
@@ -27,77 +43,58 @@ type AppMetadata struct {
 
 var appInfos = []AppMetadata{}
 
-func dummyRetrieve(w http.ResponseWriter, r *http.Request) {
-	// Set the Content-Type header to indicate that we are returning YAML data
-	w.Header().Set("Content-Type", "application/yaml")
-	// Marshal the appMetadataArray to YAML
-	yamlData, err := yaml.Marshal(&appInfos)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-	// Write the YAML data to the response
-	_, err = w.Write(yamlData)
-	if err != nil {
-		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-		return
-	}
-}
-
-func dummyPersist(w http.ResponseWriter, r *http.Request) {
-	// Read the request body
+func createSingle(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
+
 	if err != nil {
 		http.Error(w, "Failed to read request body", http.StatusBadRequest)
 		return
 	}
-	// Parse the YAML request payload
+
 	var newMetadata AppMetadata
 	err = yaml.Unmarshal(body, &newMetadata)
+
 	if err != nil {
 		http.Error(w, "Invalid request payload", http.StatusBadRequest)
 		return
 	}
-	// Here, you can perform additional validation or business logic, if required.
-	// For example, check if the ISBN is unique, etc.
 
-	// Save the book to the database or perform any other necessary actions.
-	// For simplicity, we'll just print the book information for now.
-	fmt.Printf("New Book: %+v\n", newMetadata)
 	appInfos = append(appInfos, newMetadata)
 
-	// Return a success response
 	w.WriteHeader(http.StatusCreated)
-	w.Write([]byte("Book created successfully"))
+	w.Write([]byte("New metadata added successfully"))
 }
 
-func fillWithDummyApps() {
-	dummyMaintainer := MaintainerInfo{
-		Name:  "ana",
-		Email: "anaclara.zoppiserpa@gmail.com",
+func getAllNoQuery(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/yaml")
+
+	yamlData, err := yaml.Marshal(&appInfos)
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
 
-	dummyApp_1 := AppMetadata{
-		Title:       "my app",
-		Version:     "1.0",
-		Maintainers: []MaintainerInfo{dummyMaintainer},
-		Company:     "ana's company",
-		Website:     "ana's github",
-		Source:      "source",
-		License:     "license",
-		Description: "this is my app",
+	_, err = w.Write(yamlData)
+
+	if err != nil {
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
 	}
+}
 
-	appInfos = append(appInfos, dummyApp_1, dummyApp_1)
+func singleQuery(w http.ResponseWriter, r *http.Request) {
+}
 
-	fmt.Println(appInfos)
+func multipleQueries(w http.ResponseWriter, r *http.Request) {
+
 }
 
 func main() {
-	//fillWithDummyApps()
-
-	http.HandleFunc("/metadata", dummyRetrieve)
-	http.HandleFunc("/new", dummyPersist)
+	http.HandleFunc("/all", getAllNoQuery)
+	http.HandleFunc("/add", createSingle)
+	http.HandleFunc("/query/single", createSingle)
+	http.HandleFunc("/query/multiple", createSingle)
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
