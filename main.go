@@ -3,102 +3,104 @@ package main
 import (
 	//"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v3"
+	"io/ioutil"
 	"net/http"
+
+	"gopkg.in/yaml.v3"
 )
 
 type MaintainerInfo struct {
-	name  string `yaml:"name"`
-	email string `yaml:"email"`
+	Name  string `yaml:"name"`
+	Email string `yaml:"email"`
 }
 
 type AppMetadata struct {
-	title       string           `yaml:"title"`
-	version     string           `yaml:"version"`
-	maintainers []MaintainerInfo `yaml:"maintainer"`
-	company     string           `yaml:"company"`
-	website     string           `yaml:"website"`
-	source      string           `yaml:"source"`
-	license     string           `yaml:"license"`
-	description string           `yaml:"description"`
+	Title       string           `yaml:"title"`
+	Version     string           `yaml:"version"`
+	Maintainers []MaintainerInfo `yaml:"maintainer"`
+	Company     string           `yaml:"company"`
+	Website     string           `yaml:"website"`
+	Source      string           `yaml:"source"`
+	License     string           `yaml:"license"`
+	Description string           `yaml:"description"`
 }
 
 var appInfos = []AppMetadata{}
 
-func handleGetAppMetadata(w http.ResponseWriter, r *http.Request) {
+func dummyRetrieve(w http.ResponseWriter, r *http.Request) {
 	// Set the Content-Type header to indicate that we are returning YAML data
-	w.Header().Set("Content-Type", "application/x-yaml")
-
+	w.Header().Set("Content-Type", "application/yaml")
 	// Marshal the appMetadataArray to YAML
-	yamlData, err := yaml.Marshal(appInfos)
+	yamlData, err := yaml.Marshal(&appInfos)
 	if err != nil {
-		log.Printf("Error marshaling YAML: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-
 	// Write the YAML data to the response
 	_, err = w.Write(yamlData)
 	if err != nil {
-		log.Printf("Error writing response: %v", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 }
 
+func dummyPersist(w http.ResponseWriter, r *http.Request) {
+	// Read the request body
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		http.Error(w, "Failed to read request body", http.StatusBadRequest)
+		return
+	}
+	// Parse the YAML request payload
+	var newMetadata AppMetadata
+	err = yaml.Unmarshal(body, &newMetadata)
+	if err != nil {
+		http.Error(w, "Invalid request payload", http.StatusBadRequest)
+		return
+	}
+	// Here, you can perform additional validation or business logic, if required.
+	// For example, check if the ISBN is unique, etc.
+
+	// Save the book to the database or perform any other necessary actions.
+	// For simplicity, we'll just print the book information for now.
+	fmt.Printf("New Book: %+v\n", newMetadata)
+	appInfos = append(appInfos, newMetadata)
+
+	// Return a success response
+	w.WriteHeader(http.StatusCreated)
+	w.Write([]byte("Book created successfully"))
+}
 
 func fillWithDummyApps() {
 	dummyMaintainer := MaintainerInfo{
-		name:  "ana",
-		email: "anaclara.zoppiserpa@gmail.com",
+		Name:  "ana",
+		Email: "anaclara.zoppiserpa@gmail.com",
 	}
 
 	dummyApp_1 := AppMetadata{
-		title:       "my app",
-		version:     "1.0",
-		maintainers: []MaintainerInfo{dummyMaintainer},
-		company:     "ana's company",
-		website:     "ana's github",
-		source:      "source",
-		license:     "license",
-		description: "this is my app",
+		Title:       "my app",
+		Version:     "1.0",
+		Maintainers: []MaintainerInfo{dummyMaintainer},
+		Company:     "ana's company",
+		Website:     "ana's github",
+		Source:      "source",
+		License:     "license",
+		Description: "this is my app",
 	}
 
-	dummyApp_2 := AppMetadata{
-		title:       "my app",
-		version:     "1.0",
-		maintainers: []MaintainerInfo{dummyMaintainer},
-		company:     "ana's company",
-		website:     "ana's github",
-		source:      "source",
-		license:     "license",
-		description: "this is my app",
-	}
-
-	appInfos = append(appInfos, dummyApp_1, dummyApp_2)
+	appInfos = append(appInfos, dummyApp_1, dummyApp_1)
 
 	fmt.Println(appInfos)
 }
 
 func main() {
-	fmt.Println("main")
-	fmt.Println("dummy apps")
-	fillWithDummyApps()
+	//fillWithDummyApps()
 
-	http.HandleFunc("/metadata", handleGetAppMetadata)
+	http.HandleFunc("/metadata", dummyRetrieve)
+	http.HandleFunc("/new", dummyPersist)
 
 	err := http.ListenAndServe(":8080", nil)
 	if err != nil {
 		panic(err)
 	}
 }
-
-// define yaml struct of metadata
-// define endpoints
-
-// check if yaml is working properly on the requests
-// create new app metadata
-// return all the metadatas
-// edit a metadata
-// delete a metadata
-// more sophisticated queries
