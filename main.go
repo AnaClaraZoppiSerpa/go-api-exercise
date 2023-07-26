@@ -1,4 +1,4 @@
-package main
+/*package main
 
 import (
 	//"encoding/json"
@@ -22,7 +22,17 @@ type MaintainerFilter struct {
 type VersionFilter struct {
 	Lower        int    `yaml:"lower"`
 	Upper        int    `yaml:"upper"`
-	RegexPattern string `yaml:"regex_pattern"`
+}
+
+type Query struct {
+	Title StringFilter
+	Version VersionFilter
+	Maintainers MaintainerFilter
+	Company StringFilter
+	Website StringFilter
+	Source StringFilter
+	License StringFilter
+	Description StringFilter
 }
 
 type MaintainerInfo struct {
@@ -42,6 +52,10 @@ type AppMetadata struct {
 }
 
 var appInfos = []AppMetadata{}
+
+func applyQuery(apps []AppMetadata, query Query) {
+	
+}
 
 func createSingle(w http.ResponseWriter, r *http.Request) {
 	body, err := ioutil.ReadAll(r.Body)
@@ -90,7 +104,7 @@ func multipleQueries(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func main() {
+/*func main() {
 	http.HandleFunc("/all", getAllNoQuery)
 	http.HandleFunc("/add", createSingle)
 	http.HandleFunc("/query/single", createSingle)
@@ -100,4 +114,4 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-}
+}*/
